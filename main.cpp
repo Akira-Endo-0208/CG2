@@ -474,7 +474,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		
 		if (key[DIK_SPACE])
 		{
-			FLOAT clearColor[] = { 1.0f,1.0f,1.0f,0.0f };
+			FLOAT clearColor[] = { 1.0f,0.2f,0.8f,0.0f };
 			commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		}
 		// 4.•`‰æƒRƒ}ƒ“ƒh‚±‚±‚©‚ç
