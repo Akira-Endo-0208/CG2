@@ -531,6 +531,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		result = swapChain->Present(1, 0);
 		assert(SUCCEEDED(result));
 
+
 		//コマンドの実行完了を待つ
 		commandQueue->Signal(fence, ++fenceVal);
 		if (fence->GetCompletedValue() != fenceVal)
