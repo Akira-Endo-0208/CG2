@@ -251,6 +251,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{ -0.5f, -0.5f, 0.0f }, // 左下
 	{ -0.5f, +0.5f, 0.0f }, // 左上
 	{ +0.5f, -0.5f, 0.0f }, // 右下
+	{ +0.5f, +0.5f, 0.0f }, 
+	{ -0.5f, +0.5f, 0.0f }, 
+	{ +0.5f, -0.5f, 0.0f }, 
 	};
 
 	// 頂点データ全体のサイズ = 頂点データ一つ分のサイズ * 頂点データの要素数
@@ -368,6 +371,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	// グラフィックスパイプライン設定
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc1{};
 
 	// シェーダーの設定
 	pipelineDesc.VS.pShaderBytecode = vsBlob->GetBufferPointer();
@@ -375,30 +379,65 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	pipelineDesc.PS.pShaderBytecode = psBlob->GetBufferPointer();
 	pipelineDesc.PS.BytecodeLength = psBlob->GetBufferSize();
 
+	// シェーダーの設定
+	pipelineDesc1.VS.pShaderBytecode = vsBlob->GetBufferPointer();
+	pipelineDesc1.VS.BytecodeLength = vsBlob->GetBufferSize();
+	pipelineDesc1.PS.pShaderBytecode = psBlob->GetBufferPointer();
+	pipelineDesc1.PS.BytecodeLength = psBlob->GetBufferSize();
+
 	// サンプルマスクの設定
 	pipelineDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+	pipelineDesc1.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 
 	//ラスタライザの設定
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
+
+		pipelineDesc1.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
+
+
 	pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴン内塗りつぶし
+
+	pipelineDesc1.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME; // ワイヤーフレーム
+
+
 	pipelineDesc.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
+
+	pipelineDesc1.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
 
 	// ブレンドステート
 	pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask
 		= D3D12_COLOR_WRITE_ENABLE_ALL; // RBGA全てのチャンネルを描画
 
+	// ブレンドステート
+	pipelineDesc1.BlendState.RenderTarget[0].RenderTargetWriteMask
+		= D3D12_COLOR_WRITE_ENABLE_ALL; // RBGA全てのチャンネルを描画
+
 
 	// 頂点レイアウトの設定
 	pipelineDesc.InputLayout.pInputElementDescs = inputLayout;
+
+	pipelineDesc1.InputLayout.pInputElementDescs = inputLayout;
+
 	pipelineDesc.InputLayout.NumElements = _countof(inputLayout);
 
+	pipelineDesc1.InputLayout.NumElements = _countof(inputLayout);
 	// 図形の形状設定
 	pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
+	pipelineDesc1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
 	// その他の設定
 	pipelineDesc.NumRenderTargets = 1; // 描画対象は1つ
+
+	pipelineDesc1.NumRenderTargets = 1; // 描画対象は1つ
+
 	pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; // 0~255指定のRGBA
+
+	pipelineDesc1.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; // 0~255指定のRGBA
+
 	pipelineDesc.SampleDesc.Count = 1; // 1ピクセルにつき1回サンプリング
+
+	pipelineDesc1.SampleDesc.Count = 1; // 1ピクセルにつき1回サンプリング
 
 	// ルートシグネチャ
 	ID3D12RootSignature* rootSignature;
@@ -416,15 +455,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	rootSigBlob->Release();
 	// パイプラインにルートシグネチャをセット
 	pipelineDesc.pRootSignature = rootSignature;
+	pipelineDesc1.pRootSignature = rootSignature;
 
 	// パイプランステートの生成
 	ID3D12PipelineState* pipelineState = nullptr;
 	result = device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState));
 	assert(SUCCEEDED(result));
 
+	// パイプランステートの生成
+	ID3D12PipelineState* pipelineState1 = nullptr;
+	result = device->CreateGraphicsPipelineState(&pipelineDesc1, IID_PPV_ARGS(&pipelineState1));
+	assert(SUCCEEDED(result));
 
 	//DirectX初期化処理ここまで
+	bool changeSquare = false;
+	bool changeWired = false;
 
+	keyboard->Acquire();
+	BYTE key[256] = {};
+	BYTE oldkey[256] = {};
 
 	while (true) //ゲームループ
 	{
@@ -447,8 +496,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		//DirectX毎フレーム処理ここから
 
 		//キーボード情報の取得開始
-		keyboard->Acquire();
-		BYTE key[256] = {};
+
+
+		for (int i = 0; i < 256; ++i)
+		{
+			oldkey[i] = key[i];
+		}
+
 		keyboard->GetDeviceState(sizeof(key), key);
 
 		//バックバッファの番号を取得(2つなので0番か1番)
@@ -474,22 +528,50 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		
 		if (key[DIK_SPACE])
 		{
-			FLOAT clearColor[] = { 1.0f,1.0f,1.0f,0.0f };
+			FLOAT clearColor[] = { 1.0f,0.2f,0.8f,0.0f };
 			commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		}
 		// 4.描画コマンドここから
 
 		// ビューポート設定コマンド
 		D3D12_VIEWPORT viewport{};
-		viewport.Width = window_width;
-		viewport.Height = window_height;
-		viewport.TopLeftX = 0;
-		viewport.TopLeftY = 0;
+		viewport.Width = 320;
+		viewport.Height = 640;
+		viewport.TopLeftX = 50;
+		viewport.TopLeftY = 200;
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 		// ビューポート設定コマンドを、コマンドリストに積む
 		commandList->RSSetViewports(1, &viewport);
 
+
+		D3D12_VIEWPORT viewport1{};
+		viewport1.Width = 320;
+		viewport1.Height = 320;
+		viewport1.TopLeftX = 0;
+		viewport1.TopLeftY = 0;
+		viewport1.MinDepth = 0.0f;
+		viewport1.MaxDepth = 1.0f;
+
+
+
+		D3D12_VIEWPORT viewport2{};
+		viewport2.Width = 480;
+		viewport2.Height = 480;
+		viewport2.TopLeftX = 700;
+		viewport2.TopLeftY = 200;
+		viewport2.MinDepth = 0.0f;
+		viewport2.MaxDepth = 1.0f;
+
+
+
+		D3D12_VIEWPORT viewport3{};
+		viewport3.Width = 320;
+		viewport3.Height = 320;
+		viewport3.TopLeftX = 700;
+		viewport3.TopLeftY = 30;
+		viewport3.MinDepth = 0.0f;
+		viewport3.MaxDepth = 1.0f;
 		// シザー矩形
 		D3D12_RECT scissorRect{};
 		scissorRect.left = 0; // 切り抜き座標左
@@ -500,7 +582,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		commandList->RSSetScissorRects(1, &scissorRect);
 
 		// パイプラインステートとルートシグネチャの設定コマンド
-		commandList->SetPipelineState(pipelineState);
+		if (key[DIK_1] && oldkey[DIK_1] == 0)
+		{
+			changeWired =! changeWired;
+		}
+		if(changeWired == true)
+		{
+			commandList->SetPipelineState(pipelineState1);
+		}
+		else
+		{
+			commandList->SetPipelineState(pipelineState);
+		}
+		
 		commandList->SetGraphicsRootSignature(rootSignature);
 
 		// プリミティブ形状の設定コマンド
@@ -509,9 +603,67 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 頂点バッファビューの設定コマンド
 		commandList->IASetVertexBuffers(0, 1, &vbView);
 
-		// 描画コマンド
-		commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+		if (key[DIK_2] && oldkey[DIK_2] == 0)
+		{
+			changeSquare = !changeSquare;
+		}
 
+		if(changeSquare == true)
+		{
+			// 描画コマンド
+			commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+
+
+			// ビューポート設定コマンドを、コマンドリストに積む
+			commandList->RSSetViewports(1, &viewport1);
+
+
+			// 描画コマンド
+			commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+
+
+			// ビューポート設定コマンドを、コマンドリストに積む
+			commandList->RSSetViewports(1, &viewport2);
+
+
+			// 描画コマンド
+			commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+
+			// ビューポート設定コマンドを、コマンドリストに積む
+			commandList->RSSetViewports(1, &viewport3);
+
+
+			// 描画コマンド
+			commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+		}
+		else
+		{
+			// 描画コマンド
+			commandList->DrawInstanced(3, 1, 0, 0); // 全ての頂点を使って描画
+
+
+			// ビューポート設定コマンドを、コマンドリストに積む
+			commandList->RSSetViewports(1, &viewport1);
+
+
+			// 描画コマンド
+			commandList->DrawInstanced(3, 1, 0, 0); // 全ての頂点を使って描画
+
+
+			// ビューポート設定コマンドを、コマンドリストに積む
+			commandList->RSSetViewports(1, &viewport2);
+
+
+			// 描画コマンド
+			commandList->DrawInstanced(3, 1, 0, 0); // 全ての頂点を使って描画
+
+			// ビューポート設定コマンドを、コマンドリストに積む
+			commandList->RSSetViewports(1, &viewport3);
+
+
+			// 描画コマンド
+			commandList->DrawInstanced(3, 1, 0, 0); // 全ての頂点を使って描画
+		}
 
 		// 4.描画コマンドここまで
 
