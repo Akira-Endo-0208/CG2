@@ -474,22 +474,50 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		
 		if (key[DIK_SPACE])
 		{
-			FLOAT clearColor[] = { 1.0f,1.0f,1.0f,0.0f };
+			FLOAT clearColor[] = { 1.0f,0.2f,0.8f,0.0f };
 			commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		}
 		// 4.描画コマンドここから
 
 		// ビューポート設定コマンド
 		D3D12_VIEWPORT viewport{};
-		viewport.Width = window_width;
-		viewport.Height = window_height;
-		viewport.TopLeftX = 0;
-		viewport.TopLeftY = 0;
+		viewport.Width = 320;
+		viewport.Height = 640;
+		viewport.TopLeftX = 50;
+		viewport.TopLeftY = 200;
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 		// ビューポート設定コマンドを、コマンドリストに積む
 		commandList->RSSetViewports(1, &viewport);
 
+
+		D3D12_VIEWPORT viewport1{};
+		viewport1.Width = 320;
+		viewport1.Height = 320;
+		viewport1.TopLeftX = 0;
+		viewport1.TopLeftY = 0;
+		viewport1.MinDepth = 0.0f;
+		viewport1.MaxDepth = 1.0f;
+
+
+
+		D3D12_VIEWPORT viewport2{};
+		viewport2.Width = 480;
+		viewport2.Height = 480;
+		viewport2.TopLeftX = 700;
+		viewport2.TopLeftY = 200;
+		viewport2.MinDepth = 0.0f;
+		viewport2.MaxDepth = 1.0f;
+
+
+
+		D3D12_VIEWPORT viewport3{};
+		viewport3.Width = 320;
+		viewport3.Height = 320;
+		viewport3.TopLeftX = 700;
+		viewport3.TopLeftY = 30;
+		viewport3.MinDepth = 0.0f;
+		viewport3.MaxDepth = 1.0f;
 		// シザー矩形
 		D3D12_RECT scissorRect{};
 		scissorRect.left = 0; // 切り抜き座標左
@@ -509,10 +537,32 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 頂点バッファビューの設定コマンド
 		commandList->IASetVertexBuffers(0, 1, &vbView);
 
+
 		// 描画コマンド
 		commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
 
 
+		// ビューポート設定コマンドを、コマンドリストに積む
+		commandList->RSSetViewports(1, &viewport1);
+
+
+		// 描画コマンド
+		commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+
+
+		// ビューポート設定コマンドを、コマンドリストに積む
+		commandList->RSSetViewports(1, &viewport2);
+
+
+		// 描画コマンド
+		commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+
+		// ビューポート設定コマンドを、コマンドリストに積む
+		commandList->RSSetViewports(1, &viewport3);
+
+
+		// 描画コマンド
+		commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
 		// 4.描画コマンドここまで
 
 		// 5.リソースバリアを戻す
