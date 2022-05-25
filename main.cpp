@@ -578,7 +578,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	//WICテクスチャのロード
 	result = LoadFromWICFile(
-		L"Resource/test.png",
+		L"Resource/umamusume.png",
 		WIC_FLAGS_NONE,
 		&metadata, scratchImg);
 	ScratchImage mipChain{};
