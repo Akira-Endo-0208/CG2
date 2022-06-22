@@ -7,10 +7,10 @@
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
 #include <dinput.h>
-
+#include "Input.h"
 
 #define DIRECTINPUT_VERSION 0x0800
-
+#define MOUSE_ON_VALUE (0x80)	
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d12.lib")
@@ -89,6 +89,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ID3D12GraphicsCommandList* commandList = nullptr;
 	ID3D12CommandQueue* commandQueue = nullptr;
 	ID3D12DescriptorHeap* rtvHeap = nullptr;
+	MouseButton button_type{};
 
 	//DXGIファクトリーの生成
 	result = CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory));
@@ -242,6 +243,36 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	result = keyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
 	assert(SUCCEEDED(result));
 
+	//マウスの初期化ここから---------------------------------------------------------------------------------
+
+	static DIMOUSESTATE2 g_CurrentMouseState;		//!< マウスの現在の入力情報
+	static DIMOUSESTATE2 g_PrevMouseState;			//!< マウスの現在の入力情報
+
+	IDirectInputDevice8* mouse = nullptr;
+	result = directInput->CreateDevice(GUID_SysMouse, &mouse, NULL);
+	assert(SUCCEEDED(result));
+
+	//入力データ形式のセット
+	result = mouse->SetDataFormat(&c_dfDIMouse2); //標準形式
+	assert(SUCCEEDED(result));
+
+	//排他制御レベルのセット
+	result = mouse->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
+	assert(SUCCEEDED(result));
+
+	//制御開始
+	mouse->Acquire();
+
+	//ポーリング
+	mouse->Poll();
+
+
+	//マウスの初期化ここまで---------------------------------------------------------------------------------
+
+
+	/*InitInput();*/
+
+
 	//キーボード入力ここまで
 
 
@@ -379,7 +410,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	pipelineDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 
 	//ラスタライザの設定
-		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
+	pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
 	pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴン内塗りつぶし
 	pipelineDesc.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
 
@@ -441,7 +472,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			break;
 		}
 
-		
+
 
 
 		//DirectX毎フレーム処理ここから
@@ -450,6 +481,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		keyboard->Acquire();
 		BYTE key[256] = {};
 		keyboard->GetDeviceState(sizeof(key), key);
+
+
+
+		//マウスの初期化ここから---------------------------------------------------------------------------------
+
+		//マウスの前フレームの状態を取得
+		g_PrevMouseState = g_CurrentMouseState;
+
+		//最新フレームの状態を取得
+		mouse->GetDeviceState(sizeof(DIMOUSESTATE2), &g_CurrentMouseState);
+
+
+		//マウスの初期化ここまで---------------------------------------------------------------------------------
+
+		/*UpdateInput();*/
+
 
 		//バックバッファの番号を取得(2つなので0番か1番)
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
@@ -471,12 +518,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f }; //青っぽい色
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
-		
+
 		if (key[DIK_SPACE])
 		{
 			FLOAT clearColor[] = { 1.0f,1.0f,1.0f,0.0f };
 			commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		}
+
+		if (g_PrevMouseState.rgbButtons[MouseButton::SideUp] &&
+			g_CurrentMouseState.rgbButtons[MouseButton::SideUp])
+		{
+			FLOAT clearColor[] = { 0.5f,0.5f,0.5f,0.0f };
+			commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+		}
+
 		// 4.描画コマンドここから
 
 		// ビューポート設定コマンド
@@ -509,8 +564,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 頂点バッファビューの設定コマンド
 		commandList->IASetVertexBuffers(0, 1, &vbView);
 
-		// 描画コマンド
-		commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+
+		//if (OnMousePush(button_type) == true)
+		//{
+		//	
+		//}
+
+
+		if (g_PrevMouseState.rgbButtons[MouseButton::SideDown] &&
+			g_CurrentMouseState.rgbButtons[MouseButton::SideDown])
+		{
+			// 描画コマンド
+			commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+		}
+
 
 
 		// 4.描画コマンドここまで
