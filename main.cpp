@@ -6,17 +6,33 @@
 #include<string>
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
+
+
+
+#define DIRECTINPUT_VERSION 0x0800	//Dinputのバージョン、基本は0x0800でいい
+
 #include <dinput.h>
 
+#pragma comment(lib, "dinput8.lib")
+#pragma comment(lib, "dxguid.lib")
 
-#define DIRECTINPUT_VERSION 0x0800
+static DIMOUSESTATE2 g_CurrentMouseState;		//!< マウスの現在の入力情報
+static DIMOUSESTATE2 g_PrevMouseState;			//!< マウスの1フレーム前の入力情報
+
+enum MouseButton
+{
+	Left,		//!< 左
+	Right,		//!< 右
+	Center,		//!< 真ん中
+	SideDown,
+	SideUp
+};
 
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "dinput8.lib")
-#pragma comment(lib, "dxguid.lib")
+
 
 
 using namespace DirectX;
@@ -89,6 +105,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ID3D12GraphicsCommandList* commandList = nullptr;
 	ID3D12CommandQueue* commandQueue = nullptr;
 	ID3D12DescriptorHeap* rtvHeap = nullptr;
+	MouseButton button_type{};
 
 	//DXGIファクトリーの生成
 	result = CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory));
@@ -242,6 +259,33 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	result = keyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
 	assert(SUCCEEDED(result));
 
+//マウスの初期化ここから---------------------------------------------------------------------------------
+
+
+
+	IDirectInputDevice8* mouse = nullptr;
+	result = directInput->CreateDevice(GUID_SysMouse, &mouse, NULL);
+	assert(SUCCEEDED(result));
+
+	//入力データ形式のセット
+	result = mouse->SetDataFormat(&c_dfDIMouse2); //標準形式
+	assert(SUCCEEDED(result));
+
+	//排他制御レベルのセット
+	result = mouse->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+	assert(SUCCEEDED(result));
+
+
+
+
+
+
+//マウスの初期化ここまで---------------------------------------------------------------------------------
+
+
+	/*InitInput();*/
+
+
 	//キーボード入力ここまで
 
 
@@ -379,7 +423,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	pipelineDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 
 	//ラスタライザの設定
-		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
+	pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
 	pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴン内塗りつぶし
 	pipelineDesc.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
 
@@ -441,7 +485,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			break;
 		}
 
-		
+
 
 
 		//DirectX毎フレーム処理ここから
@@ -450,6 +494,34 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		keyboard->Acquire();
 		BYTE key[256] = {};
 		keyboard->GetDeviceState(sizeof(key), key);
+
+		
+
+		//マウスの更新処理ここから---------------------------------------------------------------------------------
+		
+
+		//制御開始
+		result = mouse->Acquire();
+		assert(SUCCEEDED(result));
+
+		//ポーリング
+		result = mouse->Poll();
+		assert(SUCCEEDED(result));
+
+
+		//マウスの前フレームの状態を取得
+		g_PrevMouseState = g_CurrentMouseState;
+
+
+		//最新フレームの状態を取得
+		result = mouse->GetDeviceState(sizeof(DIMOUSESTATE2), &g_CurrentMouseState);
+		assert(SUCCEEDED(result));
+
+
+		//マウスの更新処理ここまで---------------------------------------------------------------------------------
+
+		/*UpdateInput();*/
+
 
 		//バックバッファの番号を取得(2つなので0番か1番)
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
@@ -471,12 +543,28 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f }; //青っぽい色
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
-		
+
 		if (key[DIK_SPACE])
 		{
 			FLOAT clearColor[] = { 1.0f,1.0f,1.0f,0.0f };
 			commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		}
+
+
+		//サイドボタン(Mouse4)の動作ここから---------------------------------------------------------------------------------
+
+
+		if (g_PrevMouseState.rgbButtons[MouseButton::SideUp] &&
+			g_CurrentMouseState.rgbButtons[MouseButton::SideUp])
+		{
+			FLOAT clearColor[] = { 0.5f,0.5f,0.5f,0.0f };
+			commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+		}
+
+
+		//サイドボタン(Mouse4)の動作ここまで---------------------------------------------------------------------------------
+
+
 		// 4.描画コマンドここから
 
 		// ビューポート設定コマンド
@@ -509,8 +597,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 頂点バッファビューの設定コマンド
 		commandList->IASetVertexBuffers(0, 1, &vbView);
 
-		// 描画コマンド
-		commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+
+		//if (OnMousePush(button_type) == true)
+		//{
+		//	
+		//}
+
+
+		//サイドボタン(Mouse3)の動作ここから---------------------------------------------------------------------------------
+
+
+		if (g_PrevMouseState.rgbButtons[MouseButton::SideDown] &&
+			g_CurrentMouseState.rgbButtons[MouseButton::SideDown])
+		{
+			// 描画コマンド
+			commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+		}
+
+
+		//サイドボタン(Mouse3)の動作ここまで---------------------------------------------------------------------------------
 
 
 		// 4.描画コマンドここまで
@@ -556,6 +661,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	//ウィンドウクラスを登録解除
 	UnregisterClass(w.lpszClassName, w.hInstance);
 
+	//DInputの終了処理ここから---------------------------------------------------------------------------------
+
+	result = mouse->Unacquire();
+	assert(SUCCEEDED(result));
+
+	result = keyboard->Unacquire();
+	assert(SUCCEEDED(result));
+
+	result = mouse->Release();
+	assert(SUCCEEDED(result));
+
+	result = directInput->Release();
+	assert(SUCCEEDED(result));
+
+	//DInputの終了処理ここまで---------------------------------------------------------------------------------
 
 	return 0;
 }
