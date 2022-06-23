@@ -12,6 +12,7 @@
 #define DIRECTINPUT_VERSION 0x0800	//Dinputのバージョン、基本は0x0800でいい
 
 #include <dinput.h>
+#include "Input.h"
 
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
@@ -27,7 +28,6 @@ enum MouseButton
 	SideDown,
 	SideUp
 };
-
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d12.lib")
