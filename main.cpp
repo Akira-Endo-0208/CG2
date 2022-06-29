@@ -246,6 +246,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	//描画初期化ここから-----------------------------------------
 
+#pragma region 頂点データ(3点分の座標)
 
 #pragma region 頂点データ(3点分の座標)
 
@@ -413,6 +414,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 #pragma region グラフィックスパイプライン設定
 
+#pragma endregion 
 
 	// グラフィックスパイプライン設定 グラフィックスパイプラインの各ステージの設定をする構造体を用意する。
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
@@ -487,8 +489,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// ルートシグネチャの設定
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc{};
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rootSignatureDesc.pParameters = &rootParam;
-	rootSignatureDesc.NumParameters = 1;
 	// ルートシグネチャのシリアライズ
 	ID3DBlob* rootSigBlob = nullptr;
 	result = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_0,
