@@ -246,6 +246,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	//描画初期化ここから-----------------------------------------
 
+#pragma region 頂点データ(3点分の座標)
 
 #pragma region 頂点データ(3点分の座標)
 
@@ -413,6 +414,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 #pragma region グラフィックスパイプライン設定
 
+#pragma endregion 
 
 	// グラフィックスパイプライン設定 グラフィックスパイプラインの各ステージの設定をする構造体を用意する。
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
@@ -509,7 +511,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 #pragma endregion
 
-	struct ConstBufferMaterial {
+	struct ConstBufferDataMaterial {
 		XMFLOAT4 color;
 	};
 
@@ -519,7 +521,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	//リソース設定
 	D3D12_RESOURCE_DESC cbResourceDesc{};
 	cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	cbResourceDesc.Width = (sizeof(ConstBufferMaterial) + 0xff) & ~0xff;
+	cbResourceDesc.Width = (sizeof(ConstBufferDataMaterial) + 0xff) & ~0xff;
 	cbResourceDesc.Height = 1;
 	cbResourceDesc.DepthOrArraySize = 1;
 	cbResourceDesc.MipLevels = 1;
@@ -532,11 +534,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	assert(SUCCEEDED(result));
 
 	//定数バッファのマッピング
-	ConstBufferMaterial* constMapMaterial = nullptr;
+	ConstBufferDataMaterial* constMapMaterial = nullptr;
 	result = constBuffMaterial->Map(0, nullptr, (void**)&constMapMaterial);
 	assert(SUCCEEDED(result));
 
-	constMapMaterial->color = XMFLOAT4(1, 0, 0, 0.5f);
+	constMapMaterial->color = XMFLOAT4(1.0f, 0, 0, 0.5f);
 
 	while (true) //ゲームループ
 	{
@@ -638,6 +640,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		commandList->SetGraphicsRootConstantBufferView(0, constBuffMaterial->GetGPUVirtualAddress());
 
+		float x = 0.005f;
+		float y = 0.005f;
+		float z = 0.005f;
+		if (constMapMaterial->color.x >= 0.0f && constMapMaterial->color.z <= 0.0f)
+		{
+			constMapMaterial->color.x -= x;
+			constMapMaterial->color.y += y;
+		}
+		else if (constMapMaterial->color.y >= 0.0f)
+		{
+			constMapMaterial->color.y -= y;
+			constMapMaterial->color.z += z;
+		}
+		else if (constMapMaterial->color.z >= 0.0f)
+		{
+			constMapMaterial->color.z -= z;
+			constMapMaterial->color.x += x;
+		}
 
 #pragma region 描画コマンド
 		// 描画コマンド
