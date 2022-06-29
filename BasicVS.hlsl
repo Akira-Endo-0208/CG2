@@ -1,9 +1,4 @@
-#include "Basic.hlsli"
-
-VSOutput main(float4 pos : POSITION, float2 uv : TEXCOORD)
+float4 main(float4 pos : POSITION, matrix mat : MATRIX) : SV_POSITION
 {
-	VSOutput output;
-	output.svpos = pos;
-	output.uv = uv;
-	return output;
+	return pos;
 }
