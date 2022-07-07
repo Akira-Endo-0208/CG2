@@ -349,13 +349,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{{ 5.0f,  5.0f, -5.0f}, {1.0f, 1.0f}},
 		{{ 5.0f,  5.0f,  5.0f}, {1.0f, 0.0f}},
 		//下
-		{{ 5.0f, -5.0f, -5.0f}, {0.0f, 1.0f}},
-		{{ 5.0f, -5.0f,  5.0f}, {0.0f, 0.0f}},
+		{{-5.0f, -5.0f, -5.0f}, {0.0f, 1.0f}},
+		{{-5.0f, -5.0f,  5.0f}, {0.0f, 0.0f}},
 		{{ 5.0f, -5.0f, -5.0f}, {1.0f, 1.0f}},
 		{{ 5.0f, -5.0f,  5.0f}, {1.0f, 0.0f}},
 		//上(下面とY座標の符号が逆)
-		{{ 5.0f,  5.0f, -5.0f}, {0.0f, 1.0f}},
-		{{ 5.0f,  5.0f,  5.0f}, {0.0f, 0.0f}},
+		{{-5.0f,  5.0f, -5.0f}, {0.0f, 1.0f}},
+		{{-5.0f,  5.0f,  5.0f}, {0.0f, 0.0f}},
 		{{ 5.0f,  5.0f, -5.0f}, {1.0f, 1.0f}},
 		{{ 5.0f,  5.0f,  5.0f}, {1.0f, 0.0f}},
 	};
@@ -373,10 +373,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		//右
 		12,13,14,
 		13,14,15,
-		////下
+		//下
 		16,17,18,
 		17,18,19,
-		////上
+		//上
 		20,21,22,
 		21,22,23
 	};
@@ -683,7 +683,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ComPtr<ID3D12PipelineState> pipelineState;
 	result = device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState));
 	assert(SUCCEEDED(result));
-	#pragma endregion
+#pragma endregion
 
 	//DirectX初期化処理ここまで
 
@@ -736,81 +736,81 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma endregion
 
 #pragma region 3D変換行列の定数バッファ
-	
 
 
-		//ヒープ設定
-		D3D12_HEAP_PROPERTIES cbHeapProp{};
-		cbHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
-		//リソース設定
-		D3D12_RESOURCE_DESC cbResourceDesc{};
-		cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		cbResourceDesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
-		cbResourceDesc.Height = 1;
-		cbResourceDesc.DepthOrArraySize = 1;
-		cbResourceDesc.MipLevels = 1;
-		cbResourceDesc.SampleDesc.Count = 1;
-		cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+	//ヒープ設定
+	D3D12_HEAP_PROPERTIES cbHeapProp{};
+	cbHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
+	//リソース設定
+	D3D12_RESOURCE_DESC cbResourceDesc{};
+	cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	cbResourceDesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
+	cbResourceDesc.Height = 1;
+	cbResourceDesc.DepthOrArraySize = 1;
+	cbResourceDesc.MipLevels = 1;
+	cbResourceDesc.SampleDesc.Count = 1;
+	cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
 
-		//定数バッファの生成
+	//定数バッファの生成
 
-		result = device->CreateCommittedResource(&cbHeapProp, D3D12_HEAP_FLAG_NONE, &cbResourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&constBuffTransform));
-		assert(SUCCEEDED(result));
+	result = device->CreateCommittedResource(&cbHeapProp, D3D12_HEAP_FLAG_NONE, &cbResourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&constBuffTransform));
+	assert(SUCCEEDED(result));
 
-		//定数バッファのマッピング
+	//定数バッファのマッピング
 
-		result = constBuffTransform->Map(0, nullptr, (void**)&constMapTransform);
-		assert(SUCCEEDED(result));
+	result = constBuffTransform->Map(0, nullptr, (void**)&constMapTransform);
+	assert(SUCCEEDED(result));
 
-		constMapTransform->mat = XMMatrixIdentity();
+	constMapTransform->mat = XMMatrixIdentity();
 
-		//並行投影行列の計算
-		//constMapTransform->mat = XMMatrixOrthographicOffCenterLH(
-		//	-1.0f, window_width,
-		//	window_height, 1.0f,
-		//	0.0f, 1.0f
-		//);
-		
-		XMFLOAT3 scale;
-		XMFLOAT3 rotation;
-		XMFLOAT3 position;
+	//並行投影行列の計算
+	//constMapTransform->mat = XMMatrixOrthographicOffCenterLH(
+	//	-1.0f, window_width,
+	//	window_height, 1.0f,
+	//	0.0f, 1.0f
+	//);
 
-		scale = { 1.0f,1.0f,1.0f };
-		rotation = { 0.0f,0.0f,0.0f };
-		position = { 0.0f,0.0f,0.0f };
+	XMFLOAT3 scale;
+	XMFLOAT3 rotation;
+	XMFLOAT3 position;
 
-		//ワールド変換行列
-		XMMATRIX matWorld;
-		XMMATRIX matScale; //スケーリング行列
-		XMMATRIX matRot; //回転行列
-		XMMATRIX matTrans;	//平行移動行列
+	scale = { 1.0f,1.0f,1.0f };
+	rotation = { 0.0f,0.0f,0.0f };
+	position = { 0.0f,0.0f,0.0f };
 
-
-		//ビュー変換行列
-		XMMATRIX matView;
-		XMFLOAT3 eye(0, 0, -100);	//視点座標
-		XMFLOAT3 target(0, 0, 0);	//注視点座標
-		XMFLOAT3 up(0, 1, 0);		//上方向ベクトル
-		matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+	//ワールド変換行列
+	XMMATRIX matWorld;
+	XMMATRIX matScale; //スケーリング行列
+	XMMATRIX matRot; //回転行列
+	XMMATRIX matTrans;	//平行移動行列
 
 
-		//透視投影行列の計算
-		XMMATRIX matProjection =
-			XMMatrixPerspectiveFovLH(
+	//ビュー変換行列
+	XMMATRIX matView;
+	XMFLOAT3 eye(0, 0, -100);	//視点座標
+	XMFLOAT3 target(0, 0, 0);	//注視点座標
+	XMFLOAT3 up(0, 1, 0);		//上方向ベクトル
+	matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+
+
+	//透視投影行列の計算
+	XMMATRIX matProjection =
+		XMMatrixPerspectiveFovLH(
 			XMConvertToRadians(45.0f),
 			(float)window_width / window_height,
-			0.1f,1000.0f
+			0.1f, 1000.0f
 		);
 
-		//定数バッファに転送
-		constMapTransform->mat = matProjection;
+	//定数バッファに転送
+	constMapTransform->mat = matProjection;
 
-		
 
-		//カメラを動かさない場合
-		/*constMapTransform->mat = matView * matProjection;*/
-	
+
+	//カメラを動かさない場合
+	/*constMapTransform->mat = matView * matProjection;*/
+
 #pragma endregion
 
 
@@ -829,7 +829,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	device->CreateConstantBufferView(&cbvDesc, basicDescHeap->GetCPUDescriptorHandleForHeapStart());
 
-	#pragma region 画像イメージデータの作成
+#pragma region 画像イメージデータの作成
 	////横方向ピクセル数
 	//const size_t textureWidth = 256;
 	////縦方向ピクセル数
@@ -869,9 +869,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	//読み込んだディフューズテクスチャをSRGBとして扱う
 	metadata.format = MakeSRGB(metadata.format);
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region テクスチャバッファの生成
+#pragma region テクスチャバッファの生成
 	//ヒープ設定
 	D3D12_HEAP_PROPERTIES textureHeapProp{};
 	textureHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
@@ -918,9 +918,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region シェーダーリソースビューのデスクリプタ作成
+#pragma region シェーダーリソースビューのデスクリプタ作成
 	//SRVの最大個数
 	const size_t kMaxSRVCount = 2056;
 
@@ -929,9 +929,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.NumDescriptors = kMaxSRVCount;
-	#pragma endregion
+#pragma endregion
 
-	#pragma region シェーダーリソースビューの作成
+#pragma region シェーダーリソースビューの作成
 
 	//設定を元にSRV用デスクリプタヒープを生成
 	ID3D12DescriptorHeap* srvHeap = nullptr;
@@ -954,7 +954,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	//ハンドルの指す位置にシェーダーリソースビュー作成
 	device->CreateShaderResourceView(texBuff.Get(), &srvDesc, srvHandle);
 
-	#pragma endregion
+#pragma endregion
 
 
 	while (true) //ゲームループ
@@ -1009,8 +1009,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 
 			//座標を移動する処理(Z座標)
-			if (key[DIK_UP]){position.z += 1.0f;}
-			else if (key[DIK_DOWN]) { position.z -= 1.0f; }
+			if (key[DIK_UP]) { position.y += 1.0f; }
+			else if (key[DIK_DOWN]) { position.y -= 1.0f; }
 			if (key[DIK_RIGHT]) { position.x += 1.0f; }
 			else if (key[DIK_LEFT]) { position.x -= 1.0f; }
 
@@ -1122,7 +1122,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		result = commandList->Close();
 		assert(SUCCEEDED(result));
 		//コマンドリストの実行
-		ID3D12CommandList* commandLists[] = { commandList.Get()};
+		ID3D12CommandList* commandLists[] = { commandList.Get() };
 		commandQueue->ExecuteCommandLists(1, commandLists);
 
 		//画面に表示するバッファをフリップ(裏表の入替え)
