@@ -387,6 +387,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	UINT sizeVB = static_cast<UINT>(sizeof(vertices[0]) * _countof(vertices));
 #pragma endregion
 
+
 #pragma region 頂点バッファのデスクリプタヒープ作成
 
 	// 頂点バッファの設定
