@@ -350,13 +350,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{{ 5.0f,  5.0f, -5.0f}, {}, {1.0f, 1.0f}},
 		{{ 5.0f,  5.0f,  5.0f}, {}, {1.0f, 0.0f}},
 		//下					   
-		{{ 5.0f, -5.0f, -5.0f}, {}, {0.0f, 1.0f}},
-		{{ 5.0f, -5.0f,  5.0f}, {}, {0.0f, 0.0f}},
+		{{-5.0f, -5.0f, -5.0f}, {}, {0.0f, 1.0f}},
+		{{-5.0f, -5.0f,  5.0f}, {}, {0.0f, 0.0f}},
 		{{ 5.0f, -5.0f, -5.0f}, {}, {1.0f, 1.0f}},
 		{{ 5.0f, -5.0f,  5.0f}, {}, {1.0f, 0.0f}},
 		//上(下面とY座標の符号が逆)
-		{{ 5.0f,  5.0f, -5.0f}, {}, {0.0f, 1.0f}},
-		{{ 5.0f,  5.0f,  5.0f}, {}, {0.0f, 0.0f}},
+		{{-5.0f,  5.0f, -5.0f}, {}, {0.0f, 1.0f}},
+		{{-5.0f,  5.0f,  5.0f}, {}, {0.0f, 0.0f}},
 		{{ 5.0f,  5.0f, -5.0f}, {}, {1.0f, 1.0f}},
 		{{ 5.0f,  5.0f,  5.0f}, {}, {1.0f, 0.0f}},
 	};
@@ -375,11 +375,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		14,13,12,
 		13,14,15,
 		//下
-		16,17,18,
-		18,17,19,
+		18,17,16,
+		19,17,18,
 		//上
-		22,21,20,
-		21,22,23
+		20,21,22,
+		22,21,23
 	};
 
 
@@ -1011,15 +1011,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		matRot *= XMMatrixRotationX(rotation.x);
 		matRot *= XMMatrixRotationY(rotation.y);
 
-		if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_RIGHT] || key[DIK_LEFT])
+		if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_RIGHT] || key[DIK_LEFT] || key[DIK_I] || key[DIK_K])
 		{
 
 			//座標を移動する処理(Z座標)
 			if (key[DIK_UP]){position.z += 1.0f;}
 			else if (key[DIK_DOWN]) { position.z -= 1.0f; }
+			//座標を移動する処理(X座標)
 			if (key[DIK_RIGHT]) { position.x += 1.0f; }
 			else if (key[DIK_LEFT]) { position.x -= 1.0f; }
-
+			//座標を移動する処理(Y座標)
+			if (key[DIK_I]) { position.y += 1.0f; }
+			else if (key[DIK_K]) { position.y -= 1.0f; }
 		}
 
 		matTrans = XMMatrixTranslation(position.x, position.y, position.z);
