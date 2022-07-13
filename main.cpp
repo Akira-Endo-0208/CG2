@@ -1009,8 +1009,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{
 
 			//ç¿ïWÇà⁄ìÆÇ∑ÇÈèàóù(Zç¿ïW)
-			if (key[DIK_UP]) { position.y += 1.0f; }
-			else if (key[DIK_DOWN]) { position.y -= 1.0f; }
+			if (key[DIK_UP]) { position.z += 1.0f; }
+			else if (key[DIK_DOWN]) { position.z -= 1.0f; }
 			if (key[DIK_RIGHT]) { position.x += 1.0f; }
 			else if (key[DIK_LEFT]) { position.x -= 1.0f; }
 
