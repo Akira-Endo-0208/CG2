@@ -1,12 +1,4 @@
-cbuffer ConstBufferDataMaterial : register(b0)
-{
-	float4 color;
-}
-
-cbuffer ConstBufferDataTransform : register(b1)
-{
-	matrix mat;
-}
+#include "Basic.hlsli"
 
 float4 main() : SV_TARGET
 {
