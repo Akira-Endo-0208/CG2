@@ -1,4 +1,8 @@
-float4 main(float4 pos : POSITION, matrix mat : MATRIX) : SV_POSITION
+#include "Basic.hlsli"
+
+VSOutput main(float4 pos : POSITION)
 {
-	return pos;
+	VSOutput output;
+	output.svpos = mul(mat, pos);
+	return output;
 }
