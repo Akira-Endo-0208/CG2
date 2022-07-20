@@ -257,14 +257,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	// 頂点データ構造体
 
-
+	struct Vertex
+	{
+		XMFLOAT3 pos;
+	};
 
 	//頂点データ(透視投影行列)
-	XMFLOAT3 vertices[] = {
+	Vertex vertices[] = {
 		//   x      y      z    
-		{-30.0f, -30.0f, 0.0f},
-		{-30.0f,  30.0f, 0.0f},
-		{ 30.0f, -30.0f, 0.0f},
+		{{-30.0f, -30.0f, 0.0f}},
+		{{-30.0f,  30.0f, 0.0f}},
+		{{ 30.0f, -30.0f, 0.0f}}
 		
 	};
 	unsigned short indices[] =
@@ -342,7 +345,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 
 	// GPU上のバッファに対応した仮想メモリ(メインメモリ上)を取得
-	XMFLOAT3* vertMap = nullptr;
+	Vertex* vertMap = nullptr;
 	result = vertBuff->Map(0, nullptr, (void**)&vertMap);
 	assert(SUCCEEDED(result));
 	// 全頂点に対して
