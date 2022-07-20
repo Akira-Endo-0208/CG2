@@ -262,15 +262,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	//頂点データ(透視投影行列)
 	XMFLOAT3 vertices[] = {
 		//   x      y      z    
-		{-0.5f, -0.5f, 0.0f},
-		{-0.5f,  0.5f, 0.0f},
-		{ 0.5f, -0.5f, 0.0f},
+		{-30.0f, -30.0f, 0.0f},
+		{-30.0f,  30.0f, 0.0f},
+		{ 30.0f, -30.0f, 0.0f},
 		
 	};
 	unsigned short indices[] =
 	{
 		0,1,2,
-
 	};
 
 
