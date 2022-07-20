@@ -440,8 +440,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
 	D3D12_APPEND_ALIGNED_ELEMENT,
 	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
-	} // (1行で書いたほうが見やすい)
-
+	},// (1行で書いたほうが見やすい)
+	{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 
 	// グラフィックスパイプライン設定
@@ -778,6 +778,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		//全ての行列の転送
 		constMapTransform->mat = matWorld * matView * matProjection;
 
+		float x = 0.005f;
+		float y = 0.005f;
+		float z = 0.005f;
+		if (constMapMaterial->color.x >= 0.0f && constMapMaterial->color.z <= 0.0f)
+		{
+			constMapMaterial->color.x -= x;
+			constMapMaterial->color.y += y;
+		}
+		else if (constMapMaterial->color.y >= 0.0f)
+		{
+			constMapMaterial->color.y -= y;
+			constMapMaterial->color.z += z;
+		}
+		else if (constMapMaterial->color.z >= 0.0f)
+		{
+			constMapMaterial->color.z -= z;
+			constMapMaterial->color.x += x;
+		}
 
 		//バックバッファの番号を取得(2つなので0番か1番)
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
