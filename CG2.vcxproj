@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Dinput.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -157,6 +158,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Basic.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Dinput.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
