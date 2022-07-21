@@ -8,8 +8,7 @@
 #include <d3dcompiler.h>
 #include <dinput.h>
 #include <wrl.h>
-
-#define DIRECTINPUT_VERSION 0x0800
+#include "object2D.h"
 
 
 #pragma comment(lib, "d3dcompiler.lib")
@@ -246,6 +245,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 
 #pragma region DirectInput関連
+
 	//DirectInputの初期化
 	IDirectInput8* directInput = nullptr;
 	result = DirectInput8Create(
@@ -608,6 +608,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ConstBufferMaterial* constMapMaterial = nullptr;
 	ComPtr<ID3D12Resource> constBuffTransform;
 	ConstBufferDataTransform* constMapTransform = nullptr;
+	const static size_t kObjectCount = 1;
+	object2D object2d[kObjectCount];
 	float angle = 0.0f;
 #pragma endregion
 
@@ -645,31 +647,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	
 
 
-		//ヒープ設定
-		D3D12_HEAP_PROPERTIES cbHeapProp{};
-		cbHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
-		//リソース設定
-		D3D12_RESOURCE_DESC cbResourceDesc{};
-		cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		cbResourceDesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
-		cbResourceDesc.Height = 1;
-		cbResourceDesc.DepthOrArraySize = 1;
-		cbResourceDesc.MipLevels = 1;
-		cbResourceDesc.SampleDesc.Count = 1;
-		cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-
-
-		//定数バッファの生成
-
-		result = device->CreateCommittedResource(&cbHeapProp, D3D12_HEAP_FLAG_NONE, &cbResourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&constBuffTransform));
-		assert(SUCCEEDED(result));
-
-		//定数バッファのマッピング
-
-		result = constBuffTransform->Map(0, nullptr, (void**)&constMapTransform);
-		assert(SUCCEEDED(result));
-
-		constMapTransform->mat = XMMatrixIdentity();
+	for (int i = 0; i < _countof(object2d); i++)
+	{
+		//初期化
+		object2d[i].InitializeObject2d(device.Get());
+		
+	}
 
 		//並行投影行列の計算
 		//constMapTransform->mat = XMMatrixOrthographicOffCenterLH(
@@ -677,21 +660,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		//	window_height, 1.0f,
 		//	0.0f, 1.0f
 		//);
-		
-		XMFLOAT3 scale;
-		XMFLOAT3 rotation;
-		XMFLOAT3 position;
-
-		scale = { 1.0f,1.0f,1.0f };
-		rotation = { 0.0f,0.0f,0.0f };
-		position = { 0.0f,0.0f,0.0f };
-
-		//ワールド変換行列
-		XMMATRIX matWorld;
-		XMMATRIX matScale; //スケーリング行列
-		XMMATRIX matRot; //回転行列
-		XMMATRIX matTrans;	//平行移動行列
-
 
 		//ビュー変換行列
 		XMMATRIX matView;
@@ -709,14 +677,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			0.1f,1000.0f
 		);
 
-		//定数バッファに転送
-		constMapTransform->mat = matProjection;
-
-		
-
-		//カメラを動かさない場合
-		constMapTransform->mat = matView * matProjection;
-	
 #pragma endregion
 
 
@@ -758,6 +718,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			//angleラジアンだけY軸まわりに回転。半径は-100
 			eye.x = -100 * sinf(angle);
 			eye.z = -100 * cosf(angle);
+
 			matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 
 		}
@@ -765,34 +726,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 #pragma region ワールド行列の計算
 
-		matScale = XMMatrixScaling(scale.x, scale.y, scale.z);
-		matRot = XMMatrixIdentity();
-		matRot *= XMMatrixRotationZ(rotation.z);
-		matRot *= XMMatrixRotationX(rotation.x);
-		matRot *= XMMatrixRotationY(rotation.y);
+		if (key[DIK_UP]) { object2d[0].position.y += 1.0f; }
+		if (key[DIK_DOWN]) { object2d[0].position.y -= 1.0f; }
 
-		if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_RIGHT] || key[DIK_LEFT])
+		if (key[DIK_LEFT]) { object2d[0].position.x -= 1.0f; }
+		if (key[DIK_RIGHT]) { object2d[0].position.x += 1.0f; }
+		for (size_t i = 0; i < _countof(object2d); i++)
 		{
-
-			//座標を移動する処理(Z座標)
-			if (key[DIK_UP]){position.z += 1.0f;}
-			else if (key[DIK_DOWN]) { position.z -= 1.0f; }
-			if (key[DIK_RIGHT]) { position.x += 1.0f; }
-			else if (key[DIK_LEFT]) { position.x -= 1.0f; }
-
+			object2d[i].UpdateObject2d(matView, matProjection);
 		}
 
-		matTrans = XMMatrixTranslation(position.x, position.y, position.z);
-
-		matWorld = XMMatrixIdentity();
-		matWorld *= matScale;
-		matWorld *= matRot;
-		matWorld *= matTrans;
 
 #pragma endregion
 
-		//全ての行列の転送
-		constMapTransform->mat = matWorld * matView * matProjection;
+		
 
 		float x = 0.005f;
 		float y = 0.005f;
@@ -882,12 +829,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		//定数バッファビュー(CBV)の設定コマンド
 		commandList->SetGraphicsRootConstantBufferView(0, constBuffMaterial->GetGPUVirtualAddress());
 
-		//定数バッファビュー(CBV)の設定コマンド
-		commandList->SetGraphicsRootConstantBufferView(2, constBuffTransform->GetGPUVirtualAddress());
+	
 
-		// 描画コマンド
-		//commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
-		commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0);
+		for (int i = 0; i < _countof(object2d); i++)
+		{
+			object2d[i].DrawObject2d(commandList.Get(), vbView, ibView, _countof(indices));
+		}
 
 
 		// 4.描画コマンドここまで
