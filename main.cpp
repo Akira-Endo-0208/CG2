@@ -21,6 +21,16 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
+static DIMOUSESTATE2 g_CurrentMouseState;		//!< マウスの現在の入力情報
+static DIMOUSESTATE2 g_PrevMouseState;			//!< マウスの1フレーム前の入力情報
+
+enum MouseButton
+{
+	Left,		//!< 左
+	Right,		//!< 右
+};
+
+
 LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	switch (msg)
@@ -246,6 +256,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 #pragma region DirectInput関連
 
+
+
 	//DirectInputの初期化
 	IDirectInput8* directInput = nullptr;
 	result = DirectInput8Create(
@@ -264,6 +276,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	//排他制御レベルのセット
 	result = keyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
 	assert(SUCCEEDED(result));
+
+	IDirectInputDevice8* mouse = nullptr;
+	result = directInput->CreateDevice(GUID_SysMouse, &mouse, NULL);
+	assert(SUCCEEDED(result));
+
+	//入力データ形式のセット
+	result = mouse->SetDataFormat(&c_dfDIMouse2); //標準形式
+	assert(SUCCEEDED(result));
+
+	//排他制御レベルのセット
+	result = mouse->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+	assert(SUCCEEDED(result));
+
+	XMFLOAT2 mousePos{};
+	XMFLOAT2 prevMousePos{};
 
 #pragma endregion
 
@@ -611,6 +638,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	const static size_t kObjectCount = 1;
 	object2D object2d[kObjectCount];
 	float angle = 0.0f;
+	XMFLOAT4 changeColor = {0.009f,0.009f,0.009f,0.5f};
 #pragma endregion
 
 #pragma region 色の定数バッファ
@@ -705,15 +733,42 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		//キーボード情報の取得開始
 		keyboard->Acquire();
+		
+
 		BYTE key[256] = {};
 		keyboard->GetDeviceState(sizeof(key), key);
+		
+		//制御開始
+		mouse->Acquire();
+
+		//ポーリング
+		result = mouse->Poll();
+		assert(SUCCEEDED(result));
+
+
+		//マウスの前フレームの状態を取得
+		g_PrevMouseState = g_CurrentMouseState;
+
+
+		//最新フレームの状態を取得
+		result = mouse->GetDeviceState(sizeof(DIMOUSESTATE2), &g_CurrentMouseState);
+		assert(SUCCEEDED(result));
+
+		prevMousePos = mousePos;
+		POINT p;
+		GetCursorPos(&p);
+		// スクリーン座標をクライアント座標に変換する
+		ScreenToClient(FindWindowA("DirectXGame", nullptr), &p);
+		// 変換した座標を保存
+		mousePos.x = (float)p.x;
+		mousePos.y = (float)p.y;
+
 
 #pragma region ビュー行列の計算
 		//ビュー行列の計算
-		if (key[DIK_D] || key[DIK_A])
-		{
-			if (key[DIK_D]) { angle += XMConvertToRadians(2.0f); }
-			else if (key[DIK_A]) { angle -= XMConvertToRadians(2.0f); }
+
+			if (key[DIK_D] || g_CurrentMouseState.rgbButtons[Right]) { angle += XMConvertToRadians(2.0f); }
+			else if (key[DIK_A] || g_CurrentMouseState.rgbButtons[Left]) { angle -= XMConvertToRadians(2.0f); }
 
 			//angleラジアンだけY軸まわりに回転。半径は-100
 			eye.x = -100 * sinf(angle);
@@ -721,16 +776,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 			matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 
-		}
 #pragma endregion
 
 #pragma region ワールド行列の計算
 
-		if (key[DIK_UP]) { object2d[0].position.y += 1.0f; }
-		if (key[DIK_DOWN]) { object2d[0].position.y -= 1.0f; }
+		if (key[DIK_UP] || mousePos.y < prevMousePos.y) { object2d[0].position.y += 1.0f; }
+		if (key[DIK_DOWN] || mousePos.y > prevMousePos.y) { object2d[0].position.y -= 1.0f; }
 
-		if (key[DIK_LEFT]) { object2d[0].position.x -= 1.0f; }
-		if (key[DIK_RIGHT]) { object2d[0].position.x += 1.0f; }
+		if (key[DIK_LEFT] || mousePos.x < prevMousePos.x) { object2d[0].position.x -= 1.0f; }
+		if (key[DIK_RIGHT] || mousePos.x > prevMousePos.x) { object2d[0].position.x += 1.0f; }
 		for (size_t i = 0; i < _countof(object2d); i++)
 		{
 			object2d[i].UpdateObject2d(matView, matProjection);
@@ -741,23 +795,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		
 
-		float x = 0.005f;
-		float y = 0.005f;
-		float z = 0.005f;
+
 		if (constMapMaterial->color.x >= 0.0f && constMapMaterial->color.z <= 0.0f)
 		{
-			constMapMaterial->color.x -= x;
-			constMapMaterial->color.y += y;
+			constMapMaterial->color.x -= changeColor.x;
+			constMapMaterial->color.y += changeColor.y;
 		}
-		else if (constMapMaterial->color.y >= 0.0f)
+		else if (constMapMaterial->color.y >= 0.0f && constMapMaterial->color.x <= 0.0f)
 		{
-			constMapMaterial->color.y -= y;
-			constMapMaterial->color.z += z;
+			constMapMaterial->color.y -= changeColor.y;
+			constMapMaterial->color.z += changeColor.z;
 		}
-		else if (constMapMaterial->color.z >= 0.0f)
+		else if (constMapMaterial->color.z >= 0.0f && constMapMaterial->color.y <= 0.0f)
 		{
-			constMapMaterial->color.z -= z;
-			constMapMaterial->color.x += x;
+			constMapMaterial->color.z -= changeColor.z;
+			constMapMaterial->color.x += changeColor.x;
 		}
 
 		//バックバッファの番号を取得(2つなので0番か1番)
@@ -877,11 +929,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 
 		//DirectX毎フレーム処理ここまで
+
 	}
 
 	//ウィンドウクラスを登録解除
 	UnregisterClass(w.lpszClassName, w.hInstance);
 
-
 	return 0;
+
 }
+
